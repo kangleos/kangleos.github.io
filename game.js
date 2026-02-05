@@ -4,87 +4,75 @@ let miles = 0;
 let food = 100;
 let health = 100;
 const GOAL = 500;
-let currentWeather = "Sunny"; // New feature: Weather
+let currentWeather = "Sunny";
 
 // --- DOM ELEMENTS ---
+const logEl = document.getElementById('game-log');
 const dayEl = document.getElementById('day');
 const milesEl = document.getElementById('miles');
 const foodEl = document.getElementById('food');
 const healthEl = document.getElementById('health');
-const logEl = document.getElementById('game-log');
 
-// --- SCENARIO DATA ---
-// A list of possible events. 'weight' is how likely it is to happen (higher = more common).
+// --- SCENARIOS ---
 const scenarios = [
     {
         id: 1,
-        text: "A wheel broke on a rocky path. You spent 2 days fixing it.",
+        text: "You found a stray dog on the Kangle Trail. It stole a steak.",
         weight: 3,
         effect: () => { 
-            day += 2; 
-            food -= 10; // You still eat while fixing
+            food -= 15; 
+            log("Result: -15 Food");
         }
     },
     {
         id: 2,
-        text: "You found an abandoned wagon with supplies!",
+        text: "You found an abandoned campsite with beans!",
         weight: 2,
         effect: () => { 
-            food += 25; 
-            log("Use: +25 Food");
+            food += 20; 
+            log("Result: +20 Food");
         }
     },
     {
         id: 3,
-        text: "A pack of wolves attacked at night!",
+        text: "Bandits ambushed you!",
         weight: 2,
         effect: () => { 
-            health -= 15; 
-            food -= 10; // They stole some meat!
-            log("Result: -15 Health, -10 Food");
+            health -= 20; 
+            log("Result: -20 Health. Ouch.");
         }
     },
     {
         id: 4,
-        text: "You met a friendly traveler who shared a meal.",
+        text: "A kind stranger gave you medicine.",
         weight: 2,
         effect: () => { 
-            health += 10; 
-            food += 5;
-            log("Result: +10 Health, +5 Food");
+            health += 15; 
+            log("Result: +15 Health");
         }
     },
     {
         id: 5,
-        text: "DYSENTERY! It's not pretty...",
-        weight: 1, // Rare but deadly
+        text: "Your wagon wheel broke. You lost days fixing it.",
+        weight: 3,
         effect: () => { 
-            health -= 30; 
-            day += 3; // Takes days to recover
-            log("Result: -30 Health, +3 Days lost");
+            day += 3; 
+            food -= 15;
+            log("Result: +3 Days, -15 Food");
         }
     },
     {
         id: 6,
-        text: "Heavy rains flooded the trail. You lost supplies crossing a river.",
+        text: "Heavy rains flooded the path.",
         weight: 2,
         effect: () => { 
-            food -= 20; 
-            log("Result: -20 Food");
-        }
-    },
-    {
-        id: 7,
-        text: "You found a shortcut through a hidden valley!",
-        weight: 1,
-        effect: () => { 
-            miles += 30; 
-            log("Result: +30 Miles extra!");
+            food -= 10;
+            log("Result: -10 Food (Spoiled)");
         }
     }
 ];
 
-// --- CORE FUNCTIONS ---
+// --- FUNCTIONS ---
 
 function log(message) {
     logEl.innerHTML += `<p>> Day ${day}: ${message}</p>`;
@@ -92,51 +80,37 @@ function log(message) {
 }
 
 function updateStats() {
-    // Clamp values so they don't go below 0 or crazy high
     if (health > 100) health = 100;
     if (food < 0) food = 0;
     
     dayEl.innerText = day;
-    milesEl.innerText = Math.floor(miles); // Remove decimals
+    milesEl.innerText = Math.floor(miles);
     foodEl.innerText = Math.floor(food);
     healthEl.innerText = health;
 }
 
 function checkGameOver() {
     if (health <= 0) {
-        log("GAME OVER. You have perished.");
+        log("GAME OVER. You perished on the Kangle Trail.");
         disableButtons();
     } else if (food <= 0) {
-        log("GAME OVER. You starved to death.");
+        log("GAME OVER. You ran out of food.");
         disableButtons();
     } else if (miles >= GOAL) {
-        log("YOU WIN! You reached the Oregon Valley!");
+        log("YOU WIN! You conquered the Kangle Trail!");
         disableButtons();
     }
 }
 
 function disableButtons() {
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => btn.disabled = true);
-}
-
-// --- NEW FEATURES ---
-
-function changeWeather() {
-    // 30% chance to change weather each day
-    if (Math.random() < 0.3) {
-        const weathers = ["Sunny", "Rainy", "Stormy", "Foggy"];
-        currentWeather = weathers[Math.floor(Math.random() * weathers.length)];
-        log(`Weather changed to ${currentWeather}.`);
-    }
+    document.getElementById('travel-btn').disabled = true;
+    document.getElementById('rest-btn').disabled = true;
+    document.getElementById('hunt-btn').disabled = true;
 }
 
 function getRandomEvent() {
-    // 40% chance of NO event happening (just a normal travel day)
-    if (Math.random() < 0.4) return null;
+    if (Math.random() < 0.4) return null; // 40% chance of no event
 
-    // Simple weighted random selection
-    // (This ensures rare events like Dysentery happen less often than broken wheels)
     const totalWeight = scenarios.reduce((acc, item) => acc + item.weight, 0);
     let randomNum = Math.random() * totalWeight;
     
@@ -148,30 +122,29 @@ function getRandomEvent() {
     }
 }
 
-// --- PLAYER ACTIONS ---
+// --- ACTIONS ---
 
 function travel() {
     day++;
-    changeWeather();
-
     let baseMiles = 20;
     
-    // Weather affects speed!
+    // Weather System
+    if (Math.random() < 0.3) {
+        const weathers = ["Sunny", "Rainy", "Foggy"];
+        currentWeather = weathers[Math.floor(Math.random() * weathers.length)];
+    }
+    
     if (currentWeather === "Rainy") baseMiles -= 5;
-    if (currentWeather === "Stormy") baseMiles -= 10;
     if (currentWeather === "Sunny") baseMiles += 5;
 
-    // Random variance (±5 miles)
     const actualMiles = baseMiles + (Math.floor(Math.random() * 10) - 5);
-    
     miles += actualMiles;
-    food -= 10; 
+    food -= 10;
     
-    // Check for random event
     const event = getRandomEvent();
     if (event) {
-        log(event.text); // Print the story
-        event.effect();  // Run the code for that event
+        log(event.text);
+        event.effect();
     } else {
         log(`Travelled ${actualMiles} miles (${currentWeather}).`);
     }
@@ -182,43 +155,35 @@ function travel() {
 
 function rest() {
     day++;
-    changeWeather();
-    
     health += 15;
     food -= 5;
-    
-    // Rare chance of ambush while sleeping (10% chance)
-    if (Math.random() < 0.1) {
-        log("AMBUSH! Bandits stole food while you slept!");
-        food -= 15;
-    } else {
-        log("You rested safely. Health restored.");
-    }
-    
+    log("You rested. Health restored.");
     updateStats();
     checkGameOver();
 }
 
 function hunt() {
     day++;
-    changeWeather();
+    let successChance = health / 150; // Harder to hunt if sick
     
-    // Hunt success depends on health (harder to hunt if you are sick)
-    let successChance = health / 100; 
-    
-    if (Math.random() < successChance) {
-        const foodFound = Math.floor(Math.random() * 40) + 10;
+    if (Math.random() < successChance + 0.2) {
+        const foodFound = Math.floor(Math.random() * 30) + 10;
         food += foodFound;
-        log(`Great hunt! Caught ${foodFound} lbs of meat.`);
+        log(`Hunt successful! +${foodFound} food.`);
     } else {
-        log("The hunt failed. You caught nothing.");
+        log("Hunt failed. You found nothing.");
     }
-    
-    health -= 5; // Hunting is tiring
+    health -= 5;
     updateStats();
     checkGameOver();
 }
 
-// Initialize
+// --- EVENT LISTENERS (This fixes the buttons!) ---
+
+document.getElementById('travel-btn').addEventListener('click', travel);
+document.getElementById('rest-btn').addEventListener('click', rest);
+document.getElementById('hunt-btn').addEventListener('click', hunt);
+
+// Init Game
 updateStats();
-log("Welcome to the trail. Good luck.");
+log("Welcome to the Kangle Trail. Reaching 500 miles wins.");
